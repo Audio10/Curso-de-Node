@@ -2,6 +2,7 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const router = express.Router()
+const response = require('./network/response')
 //EMMASCRIPT6
 //import express from 'express';
 
@@ -14,18 +15,18 @@ router.get('/message', function (req, res) {
     res.header({
         "custom-header": "Nuestro valor personalizado",
     })
-    res.send('Lista de mensajes')
+    response.success(req,res, "Lista de mensajes")
 })
 
 router.post('/message', function (req, res) {
     console.log(req.query)
     console.log(req.body)
-    res.send('Mensaje añadido')
+    if ( req.query.error === 'ok'){
+        response.error(req, res, 'Error simulado', 401)
+    }else {
+        response.success(req, res, "Creado correctamente", 201)
+    }
 })
-
-// app.use('/', (req, res) => {
-//     res.send('Hola')
-// })
 
 app.listen(3000)
 console.log('La aplicacion esta escuchando en http://localhost:3000')

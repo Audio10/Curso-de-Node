@@ -99,3 +99,15 @@ res.header({
 })
 ```
 
+### RESPUESTA
+
+Se pueden responder status, así como header y objetos JSON.
+
+```javascript
+router.post('/message', function (req, res) {
+    console.log(req.query)
+    console.log(req.body)
+    res.status(201).send({ error: '', body: "Creado correctamente"})
+})
+```
+
