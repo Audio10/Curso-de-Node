@@ -193,3 +193,58 @@ router.post('/', function (req, res) {
 module.exports = router
 ```
 
+### CONTROLLER
+
+```javascript
+const express = require('express')
+const router = express.Router()
+const controller = require('./controller')
+const response = require('../../network/response')
+
+//1.- EJEMPLO se llama a la funcion addMessage proveniente de controller, la cual retorna una promesa. Se obtienen los parametros del body y segun lo que envie la promesa se hace el response.
+
+router.post('/', function (req, res) {
+
+    controller.addMessage(req.body.user, req.body.message)
+        .then( (  fullMessage) => {
+            response.success(req, res, fullMessage, 201)
+        })
+        .catch( e => {
+            response.error(req, res, 'Informacion invalida', 400, 'Error en el controller.')
+        })
+})
+
+module.exports = router
+```
+
+
+
+```
+
+
+function addMessage(user, message) {
+    return new Promise( (resolve, reject) => {
+
+        if ( !user || !message) {
+            console.error('[messageController] No hay usuario o mensaje')
+            reject('Los datos son incorrectos')
+            return false
+        }
+
+        const fullMessage = {
+            user : user,
+            message : message,
+            date : new Date(),
+        }  
+
+        console.log(fullMessage)
+        resolve(fullMessage)
+    })
+    
+}
+
+module.exports = {
+    addMessage,
+}
+```
+
