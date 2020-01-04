@@ -219,8 +219,11 @@ module.exports = router
 
 
 
-```
-
+```javascript
+// 2.- Se crean las funciones correspondientes y se exportan en un objeto.
+3.- Se creo una funcion que retorna una promesa, la cual aplica los parametros resolve y reject para cuando se resuelve y cuando se resuelve de forma negativa.
+4.- La promesa hace reject cuando no hay datos en el body.
+5.- Resuelve el fulMessage cuando si se obtienen los datos.
 
 function addMessage(user, message) {
     return new Promise( (resolve, reject) => {
@@ -245,6 +248,28 @@ function addMessage(user, message) {
 
 module.exports = {
     addMessage,
+}
+```
+
+## STORE CON MOC.
+
+```javascript
+// 1.- Se crean las funciones y se importan en este caso se ocupa una lista como ejemplo.
+
+const list = []
+
+function addMessage(message) {
+    list.push(message)
+}
+
+function getMessages() {
+    return list;
+}
+
+// 2.- De esta forma se pueden renombrar las funciones.
+module.exports = {
+    add: addMessage,
+    list: getMessages,
 }
 ```
 
