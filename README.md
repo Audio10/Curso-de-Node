@@ -370,3 +370,53 @@ module.exports = {
 }
 ```
 
+
+
+### UPDATE 
+
+```javascript
+// NETWORK
+
+router.patch('/:id', function (req, res) {
+    controller.updateMessage(req.params.id, req.body.message)
+        .then( (data) => {
+            response.success(req, res, data, 200)
+        })
+        .catch(e => {
+            response.error(req, res, 'Error interno', 500, e)
+        })
+})
+```
+
+```javascript
+// CONTROLLER
+
+function updateMessage(id, message) {
+    return new Promise( async (resolve, reject) => {
+        if (!id || !message){
+            reject('Invalid data')
+            return false
+        }
+
+        const result = await store.updateText(id, message)
+        
+        resolve(result)
+    })
+}
+```
+
+```javascript
+// STORE
+
+async function updateText(id, message) {
+    const foundMessage = await Model.findOne({
+        _id: id
+    })
+
+    foundMessage.message = message
+
+    const newMessage = await foundMessage.save()
+    return newMessage
+}
+```
+
