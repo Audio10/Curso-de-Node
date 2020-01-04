@@ -273,3 +273,100 @@ module.exports = {
 }
 ```
 
+```javascript
+// 3.- Desde el controller se llama la funcion del store.js
+
+function getMessages() {
+    return new Promise( (resolve, reject) => {
+        resolve(store.list())
+    })
+}
+```
+
+```javascript
+// 4.- En el network invoca la funcion del controller.
+
+router.get('/', function (req, res) {
+    controller.getMessages()
+        .then( (messageList) => {
+            response.success(req, res, messageList, 200)
+        })
+        .catch( e => {
+            response.error(req, res, 'Unexpected Error', 500, e)
+        })
+})
+```
+
+
+
+## MONGODB
+
+### ALMACENAR Y LEER DATOS.
+
+
+
+```javascript
+// MODEL
+
+const mongoose = require('mongoose')
+
+const Schema = mongoose.Schema
+
+const mySchema = new Schema({
+    user: String,
+    message: {
+        type: String,
+        required: true
+    },
+    date: Date,
+})
+
+// se especifica el nombre de la coleccion en la base de datos y el esquema.
+const model = mongoose.model('Message', mySchema)
+module.exports = model
+```
+
+
+
+```javascript
+// STORE
+
+const db = require('mongoose')
+const Model = require('./model')
+
+// Extiende  la clase Primise y se la aplica al mongoose
+db.Promise = global.Promise;
+
+const options = {
+    keepAlive: 1,
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+};
+
+// conecta la base de datos
+db.connect('mongodb+srv://claudio:america2010@telegrom-elgu0.mongodb.net/telegrom?retryWrites=true&w=majority', options)
+    .then(() => { 
+        console.log('DB connected') 
+    })
+    .catch((err) => {
+        console.log(err);
+    });
+
+
+function addMessage(message) {
+    // crea un nuevo modelo 
+    const myMessage = new Model(message)
+    myMessage.save()
+}
+
+async function getMessages() {
+    const messages = await Model.find()
+    return messages
+}
+
+module.exports = {
+    add: addMessage,
+    list: getMessages,
+}
+```
+
