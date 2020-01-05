@@ -853,3 +853,15 @@ function addMessage(chat, user, message, file) {
 </html>
 ```
 
+
+
+## CORS
+
+
+
+```javascript
+// SERVER JS
+const cors = require('cors')
+app.use(cors)
+```
+

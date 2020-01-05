@@ -1,4 +1,3 @@
-// 3. Crear la instancia de socket y setearla directamente desde connect.
 const socketIO = require('socket.io')
 const socket = {}
 

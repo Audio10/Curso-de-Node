@@ -1,5 +1,4 @@
 const store = require('./store');
-// 5.- Se importa el socket y solo se trae el socket usando .socket
 const socket = require('../../socket').socket
 
 function addMessage(chat, user, message, file) {
@@ -24,8 +23,6 @@ function addMessage(chat, user, message, file) {
         };
     
         store.add(fullMessage);
-
-        // 5. Se emite el mensaje por medio del socket
         socket.io.emit('message', fullMessage)
 
         resolve(fullMessage);
