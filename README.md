@@ -251,7 +251,7 @@ module.exports = {
 }
 ```
 
-## STORE CON MOC.
+### STORE CON MOC.
 
 ```javascript
 // 1.- Se crean las funciones y se importan en este caso se ocupa una lista como ejemplo.
@@ -299,7 +299,7 @@ router.get('/', function (req, res) {
 
 
 
-## MONGODB
+### MONGODB
 
 ### ALMACENAR Y LEER DATOS.
 
@@ -422,7 +422,7 @@ async function updateText(id, message) {
 
 ### CONSULTAR DATOS
 
-En este caso se hace la consulta a los mensajes de un usuario, se puede usar la funcion find que busca todos o un usuario en especifico si es que se manda por parametro.
+En este caso se hace la consulta a los mensajes de un usuario, se puede usar la función find que busca todos o un usuario en especifico si es que se manda por parámetro.
 
 ```javascript
 async function getMessages(filterUser) {
@@ -433,5 +433,423 @@ async function getMessages(filterUser) {
     const messages = await Model.find( filter )
     return messages
 }
+```
+
+### Eliminar datos.
+
+```javascript
+// NETWORK
+router.delete('/:id', (req, res) => {
+    controller.deleteMessage(req.params.id)
+        .then( () =>{
+            response.success(req, res, `Usuario ${req.params.id} eliminado`, 204)
+        })
+        .catch(e => {
+            response.error(req, res, 'Error Interno', 500, e)
+        })
+})
+```
+
+```javascript
+// CONTROLLER
+function deleteMessage(id) {
+    return new Promise( (resolve, reject) => {
+        if (!id){
+            reject('Id invalido')
+            return false
+        } 
+
+        store.remove(id)
+            .then(() => {
+                resolve()    
+            })
+            .catch( e => {
+                reject(e)
+            })
+    })
+}
+```
+
+```javascript
+// STORE
+function removeMessage(id) {
+    return Model.deleteOne({
+        _id: id
+    })
+}
+```
+
+## COMPARTIR CONEXION (DB)
+
+```javascript
+//DB.JS
+
+const db = require('mongoose')
+
+db.Promise = global.Promise;
+
+async function connect(url) {
+
+    const options = {
+        keepAlive: 1,
+        useUnifiedTopology: true,
+        useNewUrlParser: true,
+    };
+
+    await db.connect(url, options)
+        .then(() => {
+            console.log('DB connected')
+        })
+        .catch((err) => {
+            console.log(err);
+        });
+}
+
+module.exports = connect
+```
+
+```javascript
+// SERVER
+
+const db = require('./db')
+
+const router = require('./network/routes')
+
+db('mongodb+srv://claudio:america2010@telegrom-elgu0.mongodb.net/telegrom?retryWrites=true&w=majority')
+
+```
+
+## ESCALANDO ARQUITECTURA MULTIPLES ENTIDADES.
+
+Básicamente el escalamiento es la creación de mas entidades. Para lo cual se siguen los siguientes pasos como se ha listado anteriormente.
+
+- Crear el **Model**
+- Crear el **Store**
+- Crear el **Controller**
+- Crear el **Network**
+- Agregar el **Network** al **Routes**
+
+
+
+## Relacionando entidades.
+
+
+
+Las referencias se efectúan enviando el **ObjectId** con ref del tipo de dato que se crea con mongoose.
+
+```javascript
+// NWTWORK
+const mongoose = require('mongoose');
+
+const Schema = mongoose.Schema;
+
+const mySchema = new Schema({
+    chat: {
+        type: Schema.ObjectId,
+        ref: 'Chat',
+    },
+    user: {
+        type: Schema.ObjectId,
+        ref: 'User',
+    },
+    message: {
+        type: String,
+        required: true,
+    },
+    date: Date
+});
+
+const model = mongoose.model('Message', mySchema);
+module.exports = model;
+```
+
+### Copulado.
+
+El copular no es mas que decir oye si esto es una referencia a otro dato, búscalo e inserta la información.
+
+```javascript
+// STORE MESSAGES
+async function getMessages(filterChat) {
+    return new Promise((resolve, reject) => {
+        let filter = {};
+        if (filterChat !== null) {
+            filter = { chat: filterChat };
+        }
+        
+        Model.find(filter)
+        // Busca dentro de todos los elementos que son Object id y busca por campo user
+            .populate('user')
+        // Para ejecutar el populado (no se ejecuta automaticamente.)
+            .exec((error, populated) => {
+                if (error) {
+                    reject(error);
+                    return false;
+                }
+
+                resolve(populated);
+            });
+    })
+}
+```
+
+```javascript
+// CONTROLLER MESSAGES
+
+function addMessage(chat, user, message, file) {
+    return new Promise((resolve, reject) => {
+        if (!chat || !user || !message) {
+            console.error('[messageController] No hay chat usuario o mensaje');
+            reject('Los datos son incorrectos');
+            return false;
+        }
+
+        const fullMessage = {
+            chat: chat,
+            user: user,
+            message: message,
+            date: new Date(),
+        };
+    
+        store.add(fullMessage);
+
+        resolve(fullMessage);
+    });
+}
+```
+
+```javascript
+// NETWORK MESSAGES
+
+router.post('/', function (req, res) {
+    controller.addMessage(req.body.chat, req.body.user, req.body.message)
+        .then((fullMessage) => {
+            response.success(req, res, fullMessage, 201);
+        })
+        .catch(e => {
+            response.error(req, res, 'Informacion invalida', 400, 'Error en el controlaor');
+        });
+});
+```
+
+
+
+## RECIBIR Y GUARDAR ARCHIVOS.
+
+Se ocupa **Multer** como middleware para agregar archivos.
+
+```javascript
+// NETWORK MESSAGE
+
+const express = require('express');
+const multer = require('multer');
+var path = require('path')
+const response = require('../../network/response');
+const controller = require('./controller');
+const router = express.Router();
+
+var storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'public/files/')
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname)) //Appending extension
+    }
+})
+
+var upload = multer({ storage: storage });
+
+router.post('/', upload.single('file'), function (req, res) {
+    controller.addMessage(req.body.chat, req.body.user, req.body.message, req.file)
+        .then((fullMessage) => {
+            response.success(req, res, fullMessage, 201);
+        })
+        .catch(e => {
+            response.error(req, res, 'Informacion invalida', 400, 'Error en el controlaor');
+        });
+});
+```
+
+```javascript
+// CONTROLLER
+
+function addMessage(chat, user, message, file) {
+    return new Promise((resolve, reject) => {
+        if (!chat || !user || !message) {
+            console.error('[messageController] No hay chat usuario o mensaje');
+            reject('Los datos son incorrectos');
+            return false;
+        }
+
+        let fileUrl = '';
+        if (file) {
+            fileUrl = 'http://localhost:3000/app/files/' + file.filename;
+        }
+
+        const fullMessage = {
+            chat: chat,
+            user: user,
+            message: message,
+            date: new Date(),
+            file: fileUrl,
+        };
+    
+        store.add(fullMessage);
+
+        resolve(fullMessage);
+    });
+}
+```
+
+```javascript
+// Model
+const mongoose = require('mongoose');
+
+const Schema = mongoose.Schema;
+
+const mySchema = new Schema({
+    chat: {
+        type: Schema.ObjectId,
+        ref: 'Chat',
+    },
+    user: {
+        type: Schema.ObjectId,
+        ref: 'User',
+    },
+    message: {
+        type: String,
+        required: true,
+    },
+    date: Date,
+    file: String,
+});
+
+const model = mongoose.model('Message', mySchema);
+module.exports = model;
+```
+
+## SOCKETS
+
+
+
+```javascript
+// SERVER.JS
+const express = require('express')
+const app = express()
+//1.- SETEAMOS EL SERVER MODULO NATIVO DE JS
+const server = require('http').Server(app)
+const bodyParser = require('body-parser')
+
+// 4.- importar socket
+const socket = require('./socket')
+
+const db = require('./db')
+
+const router = require('./network/routes')
+
+db('mongodb+srv://claudio:america2010@telegrom-elgu0.mongodb.net/telegrom?retryWrites=true&w=majority')
+
+app.use(bodyParser.json())
+
+// 4.- asignar el server al socket mediante connect
+socket.connect(server)
+
+router(app)
+
+app.use('/app', express.static('public'))
+
+// 2.- agregar el listen al server
+server.listen(3000, () => {
+    console.log('La aplicacion esta escuchando en http://localhost:3000')
+})
+```
+
+```javascript
+// CREAR SOCKET.JS
+// 3. Crear la instancia de socket y setearla directamente desde connect.
+const socketIO = require('socket.io')
+const socket = {}
+
+function connect(server) {
+    socket.io = socketIO(server)
+}
+
+module.exports = {
+    connect,
+    socket,
+}
+```
+
+```javascript
+// CONTROLLER MESSAGES
+
+const store = require('./store');
+// 5.- Se importa el socket y solo se trae el socket usando .socket
+const socket = require('../../socket').socket
+
+function addMessage(chat, user, message, file) {
+    return new Promise((resolve, reject) => {
+        if (!chat || !user || !message) {
+            console.error('[messageController] No hay chat usuario o mensaje');
+            reject('Los datos son incorrectos');
+            return false;
+        }
+
+        let fileUrl = '';
+        if (file) {
+            fileUrl = 'http://localhost:3000/app/files/' + file.filename;
+        }
+
+        const fullMessage = {
+            chat: chat,
+            user: user,
+            message: message,
+            date: new Date(),
+            file: fileUrl,
+        };
+    
+        store.add(fullMessage);
+
+        // 5. Se emite el mensaje por medio del socket
+        socket.io.emit('message', fullMessage)
+
+        resolve(fullMessage);
+    });
+}
+
+```
+
+
+
+**Index.js** se debe acceder a este mediante **localhost:3000/app/index.html**
+
+```
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+    <h1> Mira la consola </h1>
+
+    <script>
+
+        var socket = io.connect('http://localhost:3000', {
+            forceNew: true
+        })
+
+        socket.on('message', (data) => {
+            console.log(data)
+        })
+
+    </script>
+</body>
+
+</html>
 ```
 

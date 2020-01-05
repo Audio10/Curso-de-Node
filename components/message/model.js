@@ -1,16 +1,23 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
-const Schema = mongoose.Schema
+const Schema = mongoose.Schema;
 
 const mySchema = new Schema({
-    user: String,
+    chat: {
+        type: Schema.ObjectId,
+        ref: 'Chat',
+    },
+    user: {
+        type: Schema.ObjectId,
+        ref: 'User',
+    },
     message: {
         type: String,
-        required: true
+        required: true,
     },
     date: Date,
-})
+    file: String,
+});
 
-// se especifica el nombre de la coleccion en la base de datos y el esquema.
-const model = mongoose.model('Message', mySchema)
-module.exports = model
+const model = mongoose.model('Message', mySchema);
+module.exports = model;
