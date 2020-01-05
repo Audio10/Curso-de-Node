@@ -420,3 +420,18 @@ async function updateText(id, message) {
 }
 ```
 
+### CONSULTAR DATOS
+
+En este caso se hace la consulta a los mensajes de un usuario, se puede usar la funcion find que busca todos o un usuario en especifico si es que se manda por parametro.
+
+```javascript
+async function getMessages(filterUser) {
+    let filter = {}
+    if (filterUser) {
+        filter = { user: filterUser }
+    }
+    const messages = await Model.find( filter )
+    return messages
+}
+```
+

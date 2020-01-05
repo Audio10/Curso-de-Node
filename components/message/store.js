@@ -1,7 +1,6 @@
 const db = require('mongoose')
 const Model = require('./model')
 
-// Extiende  la clase Primise y se la aplica al mongoose
 db.Promise = global.Promise;
 
 const options = {
@@ -10,7 +9,6 @@ const options = {
     useNewUrlParser: true,
 };
 
-// conecta la base de datos
 db.connect('mongodb+srv://claudio:america2010@telegrom-elgu0.mongodb.net/telegrom?retryWrites=true&w=majority', options)
     .then(() => { 
         console.log('DB connected') 
@@ -21,13 +19,16 @@ db.connect('mongodb+srv://claudio:america2010@telegrom-elgu0.mongodb.net/telegro
 
 
 function addMessage(message) {
-    // crea un nuevo modelo 
     const myMessage = new Model(message)
     myMessage.save()
 }
 
-async function getMessages() {
-    const messages = await Model.find()
+async function getMessages(filterUser) {
+    let filter = {}
+    if (filterUser) {
+        filter = { user: filterUser }
+    }
+    const messages = await Model.find( filter )
     return messages
 }
 
@@ -42,8 +43,15 @@ async function updateText(id, message) {
     return newMessage
 }
 
+function removeMessage(id) {
+    return Model.deleteOne({
+        _id: id
+    })
+}
+
 module.exports = {
     add: addMessage,
     list: getMessages,
     updateText: updateText,
+    remove: removeMessage,
 }
